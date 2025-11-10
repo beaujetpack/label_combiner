@@ -1,0 +1,132 @@
+name: Build Executables
+
+on:
+  push:
+    branches: [ main ]
+    tags:
+      - 'v*'  # Trigger on version tags like v1.0, v1.1, etc.
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:  # Allows manual trigger from Actions tab
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pyinstaller
+    
+    - name: Build Windows executable
+      run: |
+        pyinstaller --onefile --console --name label_combiner label_combiner.py
+    
+    - name: Create distribution package
+      run: |
+        mkdir label_combiner_windows
+        copy dist\label_combiner.exe label_combiner_windows\
+        copy README.md label_combiner_windows\
+        copy links.txt label_combiner_windows\
+        echo. > label_combiner_windows\links.txt
+    
+    - name: Upload Windows artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: label-combiner-windows
+        path: label_combiner_windows/
+
+  build-macos:
+    runs-on: macos-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pyinstaller
+    
+    - name: Build macOS executable
+      run: |
+        pyinstaller --onefile --console --name label_combiner label_combiner.py
+    
+    - name: Create distribution package
+      run: |
+        mkdir -p label_combiner_macos
+        cp dist/label_combiner label_combiner_macos/
+        cp README.md label_combiner_macos/
+        cp links.txt label_combiner_macos/
+        touch label_combiner_macos/links.txt
+        chmod +x label_combiner_macos/label_combiner
+    
+    - name: Upload macOS artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: label-combiner-macos
+        path: label_combiner_macos/
+
+  create-release:
+    needs: [build-windows, build-macos]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Download Windows artifact
+      uses: actions/download-artifact@v3
+      with:
+        name: label-combiner-windows
+        path: windows-dist
+    
+    - name: Download macOS artifact
+      uses: actions/download-artifact@v3
+      with:
+        name: label-combiner-macos
+        path: macos-dist
+    
+    - name: Create zip files
+      run: |
+        cd windows-dist && zip -r ../label-combiner-windows.zip * && cd ..
+        cd macos-dist && zip -r ../label-combiner-macos.zip * && cd ..
+    
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          label-combiner-windows.zip
+          label-combiner-macos.zip
+        body: |
+          ## Label Combiner Release
+          
+          Download the appropriate version for your operating system:
+          - **Windows**: `label-combiner-windows.zip`
+          - **macOS**: `label-combiner-macos.zip`
+          
+          Extract the zip file and follow the instructions in the README.
+          
+          ### What's Included
+          - Executable program
+          - README with instructions
+          - Empty links.txt template
+          
+          ### Quick Start
+          1. Extract the zip file
+          2. Add your PDF URLs to links.txt (one per line)
+          3. Run the program
+          4. Get your combined PDF!
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
