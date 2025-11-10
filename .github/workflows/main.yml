@@ -39,7 +39,7 @@ jobs:
         echo. > label_combiner_windows\links.txt
     
     - name: Upload Windows artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: label-combiner-windows
         path: label_combiner_windows/
@@ -74,7 +74,7 @@ jobs:
         chmod +x label_combiner_macos/label_combiner
     
     - name: Upload macOS artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: label-combiner-macos
         path: label_combiner_macos/
@@ -87,13 +87,13 @@ jobs:
     - uses: actions/checkout@v3
     
     - name: Download Windows artifact
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: label-combiner-windows
         path: windows-dist
     
     - name: Download macOS artifact
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         name: label-combiner-macos
         path: macos-dist
