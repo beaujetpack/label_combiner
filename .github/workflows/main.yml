@@ -31,12 +31,12 @@ jobs:
         pyinstaller --onefile --console --name label_combiner label_combiner.py
     
     - name: Create distribution package
+      shell: pwsh
       run: |
-        mkdir label_combiner_windows
-        copy dist\label_combiner.exe label_combiner_windows\
-        copy README.md label_combiner_windows\
-        copy links.txt label_combiner_windows\
-        echo. > label_combiner_windows\links.txt
+        New-Item -ItemType Directory -Force -Path label_combiner_windows
+        Copy-Item dist\label_combiner.exe label_combiner_windows\
+        if (Test-Path README.md) { Copy-Item README.md label_combiner_windows\ }
+        if (Test-Path links.txt) { Copy-Item links.txt label_combiner_windows\ } else { New-Item -ItemType File -Path label_combiner_windows\links.txt }
     
     - name: Upload Windows artifact
       uses: actions/upload-artifact@v4
@@ -68,9 +68,8 @@ jobs:
       run: |
         mkdir -p label_combiner_macos
         cp dist/label_combiner label_combiner_macos/
-        cp README.md label_combiner_macos/
-        cp links.txt label_combiner_macos/
-        touch label_combiner_macos/links.txt
+        [ -f README.md ] && cp README.md label_combiner_macos/ || echo "README.md not found, skipping"
+        [ -f links.txt ] && cp links.txt label_combiner_macos/ || touch label_combiner_macos/links.txt
         chmod +x label_combiner_macos/label_combiner
     
     - name: Upload macOS artifact
@@ -120,7 +119,7 @@ jobs:
           
           ### What's Included
           - Executable program
-          - README with instructions
+          - README with instructions (if available)
           - Empty links.txt template
           
           ### Quick Start
